@@ -4,7 +4,7 @@ langchain-core==0.1.22
 langchain-openai==0.0.2.post1
 langchain-community==0.0.16
 langchain-text-splitters==0.0.1
-openai==1.1.2
+openai>=1.6.1,<2.0.0
 pypdf==3.17.1
 faiss-cpu==1.7.4
 sentence-transformers==2.2.2
