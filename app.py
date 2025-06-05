@@ -1,12 +1,32 @@
-# filepath: /Users/A200249303/Documents/Zakony/app.py
 import os
 import streamlit as st
+import importlib.util
+import sys
+
+# Function to check if a package is available
+def is_package_available(package_name):
+    return importlib.util.find_spec(package_name) is not None
+
+# Import basic modules
 from langchain_community.document_loaders import DirectoryLoader, PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_openai import OpenAIEmbeddings, ChatOpenAI
-from langchain_community.vectorstores import FAISS
-from langchain.chains import ConversationalRetrievalChain
-from langchain.memory import ConversationBufferMemory
+from langchain_openai import ChatOpenAI
+
+# Import potentially problematic modules with error handling
+try:
+    from langchain_openai import OpenAIEmbeddings
+except ImportError as e:
+    st.warning(f"Failed to import OpenAIEmbeddings: {e}")
+    OpenAIEmbeddings = None
+
+try:
+    from langchain_community.vectorstores import FAISS
+except ImportError as e:
+    st.warning(f"Failed to import FAISS: {e}")
+    FAISS = None
+
+from langchain_community.chains import ConversationalRetrievalChain
+from langchain_community.memory import ConversationBufferMemory
 # Import OneDrive utilities
 from onedrive_utils import download_onedrive_folder
 
@@ -79,105 +99,25 @@ def load_preprocessed_vectorstore():
                 
                 if not os.path.exists(index_faiss_path) or not os.path.exists(index_pkl_path):
                     st.error(f"Missing required files in {temp_data_path}")
-                    # Try local backup
-                    st.warning("Attempting to use local backup instead...")
-                    local_data_path = "./processed_data"
-                    if os.path.exists(local_data_path):
-                        try:
-                            vectorstore = FAISS.load_local(local_data_path, embeddings, allow_dangerous_deserialization=True)
-                            st.success("Successfully loaded local backup data")
-                        except Exception as e2:
-                            st.error(f"Failed to load local backup data: {e2}")
-                            return False
-                    else:
-                        return False
+                    st.error("Nepodarilo sa stiahnuť potrebné súbory z OneDrive.")
+                    return False
                 
                 # Try to load the vectorstore
                 try:
-                    vectorstore = FAISS.load_local(temp_data_path, embeddings, allow_dangerous_deserialization=True)
-                except Exception as e:
-                    st.error(f"Failed to load FAISS index: {e}")
-                    # Fall back to local processed_data as a backup
-                    st.warning("Attempting to use local backup instead...")
-                    local_data_path = "./processed_data"
-                    if os.path.exists(local_data_path):
-                        try:
-                            vectorstore = FAISS.load_local(local_data_path, embeddings, allow_dangerous_deserialization=True)
-                            st.success("Successfully loaded local backup data")
-                        except Exception as e2:
-                            st.error(f"Failed to load local backup data: {e2}")
-                            return False
-                    else:
+                    try:
+                        vectorstore = FAISS.load_local(temp_data_path, embeddings, allow_dangerous_deserialization=True)
+                    except ImportError as imp_error:
+                        st.error(f"Failed to import FAISS: {imp_error}")
+                        st.error("The FAISS package is not properly installed. Please check your deployment environment.")
+                        return False
+                    except Exception as e:
+                        st.error(f"Failed to load FAISS index: {e}")
+                        st.error("Nepodarilo sa načítať dáta stiahnuté z OneDrive.")
                         return False
                 
-                # Create conversation chain with improved configuration
-                memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True, output_key="answer")
-                # Add system prompt to improve responses
-                system_prompt = """Si právny expert, ktorý odpovedá na otázky o slovenských zákonoch.
-                Tvoje odpovede by mali byť založené výhradne na obsahu poskytnutých dokumentov a relevantných zákonov.
-                Ak nenájdeš odpoveď na otázku v poskytnutých dokumentoch:
-                1. Jasne uveď, že odpoveď nie je priamo v poskytnutých dokumentoch.
-                2. Neodpovedaj na otázky, pre ktoré nemáš dostatočné informácie.
-                3. Nikdy si nevymýšľaj fakty alebo ustanovenia zákonov.
-                4. Pre otázky o zákonoch, uveď konkrétny zákon a paragraf, ak je táto informácia k dispozícii.
-                
-                Pri poskytovaní odpovedí:
-                - Používaj len informácie z dokumentov, ktoré sú relevantné pre danú otázku.
-                - Ak dokumenty neobsahujú potrebné informácie, povedz: "Prepáčte, ale poskytnuté dokumenty neobsahujú informácie týkajúce sa vašej otázky."
-                - Vždy uvádzaj presný odkaz na príslušný zákon (číslo, názov, paragraf), ak je k dispozícii.
-                """
-                
-                # Create the ChatOpenAI model with system prompt
-                llm = ChatOpenAI(
-                    temperature=0, 
-                    api_key=st.session_state.api_key, 
-                    model_name="gpt-4o",  # Upgraded to GPT-4o
-                    model_kwargs={"messages": [{"role": "system", "content": system_prompt}]}
-                )
-                
-                # Create a more selective retriever with higher threshold
-                retriever = vectorstore.as_retriever(
-                    search_type="similarity_score_threshold",
-                    search_kwargs={
-                        "k": 5,  # Reduced from 8 to get only the most relevant docs
-                        "score_threshold": 0.75  # Increased threshold for better relevance filtering
-                    }
-                )
-                
-                conversation = ConversationalRetrievalChain.from_llm(
-                    llm=llm,
-                    retriever=retriever,
-                    memory=memory,
-                    chain_type="stuff",
-                    return_source_documents=True,
-                    verbose=True
-                )
-                
-                st.session_state.conversation = conversation
-                st.session_state.vectorstore = vectorstore
-                st.session_state.docs_processed = True
-                st.session_state.using_preprocessed = True
-                st.success("Predspracované dokumenty úspešne načítané z OneDrive!")
-                return True
-            except Exception as e:
-                st.error(f"Chyba pri načítaní predspracovaných dokumentov: {e}")
-                st.error(f"Obsah priečinka: {os.listdir(temp_data_path) if os.path.isdir(temp_data_path) else 'Nie je priečinok'}")
-                return False
-        else:
-            # Try to use local processed_data if OneDrive download fails
-            local_data_path = "./processed_data"
-            if os.path.exists(local_data_path):
-                st.warning(f"Nepodarilo sa stiahnuť predspracované dokumenty z OneDrive. Skúšam použiť lokálne dáta.")
-                try:
-                    # Load the vectorstore from local disk
-                    embeddings = OpenAIEmbeddings(
-                        api_key=st.session_state.api_key,
-                        model="text-embedding-3-small"
-                    )
-                    vectorstore = FAISS.load_local(local_data_path, embeddings, allow_dangerous_deserialization=True)
-                    
                     # Create conversation chain with improved configuration
                     memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True, output_key="answer")
+                    # Add system prompt to improve responses
                     system_prompt = """Si právny expert, ktorý odpovedá na otázky o slovenských zákonoch.
                     Tvoje odpovede by mali byť založené výhradne na obsahu poskytnutých dokumentov a relevantných zákonov.
                     Ak nenájdeš odpoveď na otázku v poskytnutých dokumentoch:
@@ -192,18 +132,20 @@ def load_preprocessed_vectorstore():
                     - Vždy uvádzaj presný odkaz na príslušný zákon (číslo, názov, paragraf), ak je k dispozícii.
                     """
                     
+                    # Create the ChatOpenAI model with system prompt
                     llm = ChatOpenAI(
                         temperature=0, 
                         api_key=st.session_state.api_key, 
-                        model_name="gpt-4o",
+                        model_name="gpt-4o",  # Upgraded to GPT-4o
                         model_kwargs={"messages": [{"role": "system", "content": system_prompt}]}
                     )
                     
+                    # Create a more selective retriever with higher threshold
                     retriever = vectorstore.as_retriever(
                         search_type="similarity_score_threshold",
                         search_kwargs={
-                            "k": 5,
-                            "score_threshold": 0.75
+                            "k": 5,  # Reduced from 8 to get only the most relevant docs
+                            "score_threshold": 0.75  # Increased threshold for better relevance filtering
                         }
                     )
                     
@@ -220,97 +162,45 @@ def load_preprocessed_vectorstore():
                     st.session_state.vectorstore = vectorstore
                     st.session_state.docs_processed = True
                     st.session_state.using_preprocessed = True
-                    st.success("Predspracované dokumenty úspešne načítané z lokálneho úložiska!")
+                    st.success("Predspracované dokumenty úspešne načítané z OneDrive!")
                     return True
                 except Exception as e:
-                    st.error(f"Chyba pri načítaní lokálnych predspracovaných dokumentov: {e}")
-                    st.info(f"Aktuálny pracovný priečinok: {os.getcwd()}")
+                    st.error(f"Chyba pri načítaní predspracovaných dokumentov: {e}")
+                    st.error(f"Obsah priečinka: {os.listdir(temp_data_path) if os.path.isdir(temp_data_path) else 'Nie je priečinok'}")
                     return False
-            else:
-                st.warning(f"Nepodarilo sa stiahnuť predspracované dokumenty z OneDrive a lokálne dáta nie sú dostupné.")
-                st.info(f"Aktuálny pracovný priečinok: {os.getcwd()}")
+            except Exception as e:
+                st.error(f"Chyba pri načítaní predspracovaných dokumentov: {e}")
+                st.error(f"Obsah priečinka: {os.listdir(temp_data_path) if os.path.isdir(temp_data_path) else 'Nie je priečinok'}")
                 return False
+        else:
+            # Don't try to use local data, only use OneDrive
+            st.warning(f"Nepodarilo sa stiahnuť predspracované dokumenty z OneDrive.")
+            st.info(f"Aktuálny pracovný priečinok: {os.getcwd()}")
+            
+            # Retry button for OneDrive download
+            if st.button("Skúsiť znova stiahnuť dáta z OneDrive"):
+                st.experimental_rerun()
+                
+            return False
 
 # Function to load and process documents directly
 def load_documents():
-    if load_preprocessed_vectorstore():
-        return
-        
-    with st.spinner("Načítavam PDF súbory zo zložky stiahnute_zakony..."):
-        # Load PDF files from the directory
-        loader = DirectoryLoader(
-            "./stiahnute_zakony/", 
-            glob="**/*.pdf", 
-            loader_cls=PyPDFLoader,
-            show_progress=True
-        )
-        documents = loader.load()
-        st.info(f"Načítaných {len(documents)} dokumentov.")
-        
-        # Split documents into chunks
-        text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1000, 
-            chunk_overlap=200, 
-            separators=["\n\n", "\n", " ", ""]
-        )
-        chunks = text_splitter.split_documents(documents)
-        st.info(f"Dokumenty rozdelené na {len(chunks)} častí.")
-        
-        # Create embeddings and vectorstore
-        embeddings = OpenAIEmbeddings(
-            api_key=st.session_state.api_key,
-            model="text-embedding-3-small"  # Upgraded embedding model
-        )
-        vectorstore = FAISS.from_documents(chunks, embeddings)
-        st.success("Dokumenty úspešne spracované a pripravené na vyhľadávanie!")
-        
-        # Create conversation chain
-        memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True, output_key="answer")
-        # Add system prompt
-        system_prompt = """Si právny expert, ktorý odpovedá na otázky o slovenských zákonoch.
-        Tvoje odpovede by mali byť založené výhradne na obsahu poskytnutých dokumentov a relevantných zákonov.
-        Ak nenájdeš odpoveď na otázku v poskytnutých dokumentoch:
-        1. Jasne uveď, že odpoveď nie je priamo v poskytnutých dokumentoch.
-        2. Neodpovedaj na otázky, pre ktoré nemáš dostatočné informácie.
-        3. Nikdy si nevymýšľaj fakty alebo ustanovenia zákonov.
-        4. Pre otázky o zákonoch, uveď konkrétny zákon a paragraf, ak je táto informácia k dispozícii.
-        
-        Pri poskytovaní odpovedí:
-        - Používaj len informácie z dokumentov, ktoré sú relevantné pre danú otázku.
-        - Ak dokumenty neobsahujú potrebné informácie, povedz: "Prepáčte, ale poskytnuté dokumenty neobsahujú informácie týkajúce sa vašej otázky."
-        - Vždy uvádzaj presný odkaz na príslušný zákon (číslo, názov, paragraf), ak je k dispozícii.
-        """
-        
-        # Create the ChatOpenAI model with system prompt
-        llm = ChatOpenAI(
-            temperature=0, 
-            api_key=st.session_state.api_key, 
-            model_name="gpt-4o",  # Upgraded to GPT-4o
-            model_kwargs={"messages": [{"role": "system", "content": system_prompt}]}
-        )
-        
-        # Create a more selective retriever with higher threshold
-        retriever = vectorstore.as_retriever(
-            search_type="similarity_score_threshold",
-            search_kwargs={
-                "k": 5,  # Reduced from 8 to more focused results
-                "score_threshold": 0.75  # Increased threshold for better relevance filtering
-            }
-        )
-        
-        conversation = ConversationalRetrievalChain.from_llm(
-            llm=llm,
-            retriever=retriever,
-            memory=memory,
-            chain_type="stuff",
-            return_source_documents=True,
-            verbose=True
-        )
-        
-        st.session_state.conversation = conversation
-        st.session_state.vectorstore = vectorstore
-        st.session_state.docs_processed = True
-        st.session_state.using_preprocessed = False
+    # Only try to load from OneDrive, don't fall back to local files
+    try:
+        if load_preprocessed_vectorstore():
+            return
+            
+        # If OneDrive loading fails, show an error message
+        st.error("Nepodarilo sa načítať dokumenty z OneDrive. Aplikácia vyžaduje pripojenie k OneDrive.")
+        st.info("Skúste to znova alebo kontaktujte administrátora pre pomoc.")
+    except ImportError as e:
+        st.error(f"Chyba pri importe knižníc: {e}")
+        st.info("Niektoré potrebné knižnice nie sú správne nainštalované. Kontaktujte administrátora.")
+    except Exception as e:
+        st.error(f"Neočakávaná chyba: {e}")
+        st.info("Skúste to znova alebo kontaktujte administrátora pre pomoc.")
+    
+    st.session_state.docs_processed = False
 
 # Sidebar for API key input
 with st.sidebar:

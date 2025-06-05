@@ -46,20 +46,8 @@ def download_onedrive_folder(url, dest_folder):
         # Create destination folder if it doesn't exist
         os.makedirs(dest_folder, exist_ok=True)
         
-        # First, check if we can simply use local files
-        local_data_path = "./processed_data"
-        if os.path.exists(local_data_path):
-            if os.path.exists(os.path.join(local_data_path, "index.faiss")) and os.path.exists(os.path.join(local_data_path, "index.pkl")):
-                print(f"Local data found at {local_data_path}. Copying to temporary folder...")
-                try:
-                    # Copy the local files to the temp folder
-                    shutil.copy2(os.path.join(local_data_path, "index.faiss"), os.path.join(dest_folder, "index.faiss"))
-                    shutil.copy2(os.path.join(local_data_path, "index.pkl"), os.path.join(dest_folder, "index.pkl"))
-                    print("Successfully copied local files to temporary folder.")
-                    return dest_folder
-                except Exception as e:
-                    print(f"Error copying local files: {e}")
-                    # Continue with OneDrive download as fallback
+        # Skip using any local files, always download from OneDrive
+        print("Attempting to download data from OneDrive only...")
         
         # Clean/normalize the URL
         url = clean_onedrive_url(url)

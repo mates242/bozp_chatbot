@@ -1,11 +1,12 @@
 streamlit==1.35.0
-# Use compatible versions of langchain packages
-langchain>=0.0.310  # Added back since we need chains and memory modules
+langchain>=0.0.352
 langchain-core>=0.1.27
 langchain-openai>=0.0.2.post1
 langchain-community>=0.0.16
 langchain-text-splitters>=0.0.1
 openai>=1.6.1,<2.0.0
 pypdf==3.17.1
-faiss-cpu==1.7.4
-sentence-transformers==2.2.2
+# Use binary wheels only to avoid build issues
+--only-binary=:all: faiss-cpu==1.7.4
+--only-binary=:all: sentence-transformers==2.2.2
+--only-binary=:all: sentencepiece
