@@ -1,10 +1,13 @@
 streamlit==1.35.0
-langchain==0.0.352
+langchain==0.1.4
 langchain-core==0.1.22
-langchain-openai==0.0.2.post1
+langchain-openai==0.0.5
 langchain-community==0.0.16
 langchain-text-splitters==0.0.1
-openai==1.1.2
+openai==1.15.0
 pypdf==3.17.1
 faiss-cpu==1.7.4
-sentence-transformers==2.2.2
+requests>=2.25.0
+python-magic>=0.4.24; sys_platform != 'win32'
+python-magic-bin>=0.4.14; sys_platform == 'win32'
+pydantic>=2.5.0

@@ -520,3 +520,23 @@ def create_minimal_vectorstore(dest_folder):
     except Exception as e:
         print(f"Error creating minimal vectorstore: {e}")
         return None
+
+def clean_temp_data(temp_folder):
+    """
+    Remove temporary data downloaded from OneDrive to free up space.
+    
+    Args:
+        temp_folder: Path to temporary folder to clean
+        
+    Returns:
+        bool: True if cleaning was successful, False otherwise
+    """
+    if os.path.exists(temp_folder):
+        try:
+            shutil.rmtree(temp_folder)
+            print(f"Successfully deleted temporary data: {temp_folder}")
+            return True
+        except Exception as e:
+            print(f"Error deleting temporary data: {e}")
+            return False
+    return True  # If folder doesn't exist, that's fine too

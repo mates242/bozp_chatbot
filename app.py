@@ -1,4 +1,3 @@
-# filepath: /Users/A200249303/Documents/Zakony/app.py
 import os
 import streamlit as st
 from langchain_community.document_loaders import DirectoryLoader, PyPDFLoader
@@ -8,7 +7,8 @@ from langchain_community.vectorstores import FAISS
 from langchain.chains import ConversationalRetrievalChain
 from langchain.memory import ConversationBufferMemory
 # Import OneDrive utilities
-from onedrive_utils import download_onedrive_folder
+from onedrive_utils import download_onedrive_folder, clean_temp_data
+import atexit
 
 # Set page configuration
 st.set_page_config(page_title="Zákony Chat", page_icon="📚", layout="wide")
@@ -24,8 +24,16 @@ if "vectorstore" not in st.session_state:
     st.session_state.vectorstore = None
 if "docs_processed" not in st.session_state:
     st.session_state.docs_processed = False
-if "using_preprocessed" not in st.session_state:
-    st.session_state.using_preprocessed = False
+if "temp_data_path" not in st.session_state:
+    st.session_state.temp_data_path = "./temp_onedrive_data"
+
+# Set up a function to clean temporary data when the app exits
+def cleanup_temp_data():
+    temp_data_path = st.session_state.temp_data_path
+    clean_temp_data(temp_data_path)
+
+# Register the cleanup function to run when the app exits
+atexit.register(cleanup_temp_data)
 
 # Function to load preprocessed vectorstore
 def load_preprocessed_vectorstore():
@@ -35,6 +43,9 @@ def load_preprocessed_vectorstore():
         
         # Local temporary folder to store downloaded files
         temp_data_path = "./temp_onedrive_data"
+        
+        # Clean any existing temporary data before downloading
+        clean_temp_data(temp_data_path)
         
         # Download the vectorstore files from OneDrive
         st.info("Sťahujem vectorstore z OneDrive...")
@@ -46,7 +57,7 @@ def load_preprocessed_vectorstore():
                 # Load the vectorstore from the downloaded files
                 embeddings = OpenAIEmbeddings(
                     api_key=st.session_state.api_key,
-                    model="text-embedding-3-small"  # Upgraded embedding model
+                    model="text-embedding-3-small"  # Using latest embedding model
                 )
                 
                 # Verify that the downloaded files exist and are not empty
