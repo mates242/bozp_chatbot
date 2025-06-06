@@ -1,0 +1,31 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# Environment variables
+.env
+
+# Streamlit secrets
+.streamlit/secrets.toml
+
+# OS specific files
+.DS_Store
+
+# IDE specific files
+.idea/
+.vscode/
+
+# Cache directories
+.ipynb_checkpoints/
+.pytest_cache/
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
