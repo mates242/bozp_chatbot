@@ -122,10 +122,15 @@ if api_key:
                 )]
                 
                 try:
-                    # Strict factual Slovak answer, no examples or analogies
-                    strict_prompt = prompt + "\n\nOdpovedaj iba fakticky, stručne a v slovenčine. Nepoužívaj žiadne príklady, analógie ani kreatívne rozšírenia. Odpovedaj len na základe dostupných informácií."
+                    # Strict factual Slovak answer, always use semantic search
+                    strict_prompt = (
+                        prompt +
+                        "\n\nOdpovedaj iba fakticky, stručne a v slovenčine. "
+                        "Použi informácie, ktoré najviac významovo súvisia s otázkou, aj keď nie sú presne rovnaké. "
+                        "Nepoužívaj žiadne príklady, analógie ani kreatívne rozšírenia. "
+                        "Ak nemáš dostatok informácií, povedz to jasne."
+                    )
                     response = qa_chain({"question": strict_prompt, "chat_history": chat_history})
-                    # Get the answer directly
                     answer = response["answer"]
                     
                     # Pridanie informácií o zdrojoch (unikátne)
