@@ -68,6 +68,11 @@ with st.sidebar:
     # Debug mode
     debug_mode = st.checkbox("Debug režim", help="Zobraziť dodatočné informácie o vyhľadávaní")
     
+    # Clear chat button
+    if st.button("Vyčistiť chat", help="Vyčistiť históriu chatu a kontext konverzácie"):
+        st.session_state.messages = []
+        st.experimental_rerun()
+    
     st.markdown("---")
     st.markdown("## O aplikácii")
     st.markdown("Táto aplikácia využíva vektorovú databázu pre poskytovanie informácií o slovenských zákonoch o bezpečnosti pri práci.")
@@ -1080,23 +1085,23 @@ if api_key:
                 # Pridanie správy asistenta do histórie
                 st.session_state.messages.append({"role": "assistant", "content": answer})
                 
-                # Uloženie stavu po spracovaní
-                # (nie je nutné, ale môže pomôcť pri obnove stavu v prípade chyby)
-                with st.expander("Debug: Interné správy", expanded=True):
-                    st.write("### Pôvodná otázka")
-                    st.markdown(prompt)
-                    st.write("### Spracovaná otázka")
-                    st.markdown(strict_prompt)
-                    st.write("### Získané odpovede")
-                    for i, doc in enumerate(response.get("source_documents", [])):
-                        st.write(f"**Dokument {i+1}:** {doc.metadata.get('source', 'Neznámy')}")
-                        st.text(doc.page_content[:500] + "..." if len(doc.page_content) > 500 else doc.page_content)
-                        st.markdown("---")
-                    if debug_mode:
-                        st.write("### Debug informácie")
-                        st.write(f"Detekované číslo zákona: {law_number}/{year}")
-                        st.write(f"Počet nájdených dokumentov: {len(response.get('source_documents', []))}")
-                        if law_response:
-                            st.write("Zákon bol úspešne nájdený a spracovaný.")
-                        else:
-                            st.write("Zákon nebol nájdený, aj keď bola otázka o zákone.")
+                # # Uloženie stavu po spracovaní
+                # # (nie je nutné, ale môže pomôcť pri obnove stavu v prípade chyby)
+                # with st.expander("Debug: Interné správy", expanded=True):
+                #     st.write("### Pôvodná otázka")
+                #     st.markdown(prompt)
+                #     st.write("### Spracovaná otázka")
+                #     st.markdown(strict_prompt)
+                #     st.write("### Získané odpovede")
+                #     for i, doc in enumerate(response.get("source_documents", [])):
+                #         st.write(f"**Dokument {i+1}:** {doc.metadata.get('source', 'Neznámy')}")
+                #         st.text(doc.page_content[:500] + "..." if len(doc.page_content) > 500 else doc.page_content)
+                #         st.markdown("---")
+                #     if debug_mode:
+                #         st.write("### Debug informácie")
+                #         st.write(f"Detekované číslo zákona: {law_number}/{year}")
+                #         st.write(f"Počet nájdených dokumentov: {len(response.get('source_documents', []))}")
+                #         if law_response:
+                #             st.write("Zákon bol úspešne nájdený a spracovaný.")
+                #         else:
+                #             st.write("Zákon nebol nájdený, aj keď bola otázka o zákone.")
