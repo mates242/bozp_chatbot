@@ -84,3 +84,32 @@
 2025-06-06 13:18:20,957 - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
 2025-06-06 13:18:21,848 - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
 2025-06-06 13:18:23,370 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-06-06 13:29:09,650 - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-06-06 13:29:11,135 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-06-06 13:29:11,139 - INFO - Law number query detected: 75/2023
+2025-06-06 13:29:11,344 - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-06-06 13:29:11,901 - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-06-06 13:29:12,973 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-06-06 13:38:15,083 - INFO - Loading faiss.
+2025-06-06 13:38:15,094 - INFO - Successfully loaded faiss.
+2025-06-06 13:38:23,028 - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-06-06 13:38:24,776 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-06-06 13:38:24,791 - INFO - Law number query detected: 75/2023
+2025-06-06 13:38:25,010 - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-06-06 13:38:25,687 - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-06-06 13:38:26,605 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-06-06 13:38:41,194 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-06-06 13:38:41,465 - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-06-06 13:38:46,146 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-06-06 14:01:57,791 - INFO - Loading faiss.
+2025-06-06 14:01:57,815 - INFO - Successfully loaded faiss.
+2025-06-06 14:02:07,286 - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-06-06 14:02:14,577 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-06-06 14:02:14,594 - INFO - Law number query detected: 75/2023
+2025-06-06 14:02:14,825 - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-06-06 14:02:15,192 - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-06-06 14:02:29,240 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-06-06 14:05:02,482 - INFO - Loading faiss.
+2025-06-06 14:05:02,547 - INFO - Successfully loaded faiss.
+2025-06-06 14:05:23,668 - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-06-06 14:05:33,029 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"

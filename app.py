@@ -489,12 +489,24 @@ def direct_law_search(law_number, year, vectorstore, debug_mode=False):
                             return docs
         except Exception as e:
             if debug_mode:
-                st.error(f"Chyba pri priamom vyhľadávaní: {str(e)}")
-    
-    # Skúsme ešte vyhľadávanie na základe čistej zhody reťazca v dokumentoch
+                st.error(f"Chyba pri priamom vyhľadávaní: {str(e)}")                                # Skúsme ešte vyhľadávanie na základe čistej zhody reťazca v dokumentoch
     try:
-        # Získame dokumenty bez predselekcií
-        raw_docs = vectorstore.similarity_search("zákony legislatíva právne predpisy", k=15)
+        # Získame dokumenty bez predselekcií, ale použijeme kombináciu užívateľského promptu a informácií o zákone
+        combined_query = f"{prompt} {law_number}/{year} {law_number}_{year} zákony legislatíva"
+        if debug_mode:
+            st.info(f"Skúšam kombinované vyhľadávanie: {combined_query}")
+        
+        # Použijeme MMR vyhľadávanie pre lepšiu rozmanitosť výsledkov
+        try:
+            mmr_retriever = vectorstore.as_retriever(search_type="mmr", search_kwargs={"k": 15, "fetch_k": 20, "lambda_mult": 0.7})
+            raw_docs = mmr_retriever.get_relevant_documents(combined_query)
+            if debug_mode and raw_docs:
+                st.success(f"Našiel som {len(raw_docs)} dokumentov pomocou MMR vyhľadávania")
+        except Exception as mmr_err:
+            if debug_mode:
+                st.error(f"MMR vyhľadávanie zlyhalo: {str(mmr_err)}, skúšam štandardné vyhľadávanie")
+            # Fallback na štandardné vyhľadávanie
+            raw_docs = vectorstore.similarity_search(combined_query, k=15, score_threshold=0.25)  # Lower threshold for more results
         
         for doc in raw_docs:
             content = doc.page_content.lower() if hasattr(doc, 'page_content') else ""
@@ -508,6 +520,34 @@ def direct_law_search(law_number, year, vectorstore, debug_mode=False):
     except Exception as e:
         if debug_mode:
             st.error(f"Chyba pri hľadaní presnej zhody: {str(e)}")
+    
+    # Ak sa dostaneme sem, skúsime priame vyhľadávanie súborov v adresári stiahnute_zakony
+    try:
+        # Import funkciu pre priame vyhľadávanie súborov
+        from enhanced_law_search import direct_file_search
+        
+        if debug_mode:
+            st.write(f"Skúšam priame vyhľadávanie súborov pre zákon {law_number}/{year}")
+            
+        # Priame vyhľadávanie súborov
+        direct_result = direct_file_search(law_number, year, debug_mode)
+        if direct_result:
+            # Vytvorenie Document objektu
+            try:
+                from langchain.schema import Document
+            except ImportError:
+                from langchain.schema.document import Document
+            
+            doc = Document(
+                page_content=direct_result["content"],
+                metadata={"source": f"stiahnute_zakony/{os.path.basename(direct_result['file_path'])}"}
+            )
+            if debug_mode:
+                st.success(f"Našiel som zákon {law_number}/{year} priamo v súbore {os.path.basename(direct_result['file_path'])}")
+            return [doc]
+    except Exception as e:
+        if debug_mode:
+            st.error(f"Chyba pri priamom vyhľadávaní súborov: {str(e)}")
     
     # Ak sa dostaneme sem, nenašli sme žiadne dokumenty
     if debug_mode:
@@ -536,16 +576,38 @@ if api_key:
         )
         
         # Vytvoriť reťazec s vlastným systémovým promptom pre faktické odpovede
-        qa_chain = ConversationalRetrievalChain.from_llm(
-            llm=llm,
-            retriever=vectorstore.as_retriever(search_kwargs={
-                "k": 6,  # Zvýšenie počtu výsledkov
-                "fetch_k": 10,  # Najprv vyber viac dokumentov
-                "score_threshold": 0.3,  # Nižší prah pre lepšie pokrytie
-            }),
-            return_source_documents=True,
-            verbose=False
-        )
+        try:
+            # Skúšame najprv s MMR retrieverom pre lepšiu diverzitu výsledkov
+            mmr_retriever = vectorstore.as_retriever(
+                search_type="mmr",
+                search_kwargs={
+                    "k": 8,  # Počet dokumentov na vrátenie
+                    "fetch_k": 15,  # Počet dokumentov na fetch pred skoringom
+                    "lambda_mult": 0.7,  # Vyváženie medzi relevantnosťou a diverzitou (0.0-1.0)
+                    "score_threshold": 0.25,  # Znížený threshold pre lepšie výsledky
+                }
+            )
+            qa_chain = ConversationalRetrievalChain.from_llm(
+                llm=llm,
+                retriever=mmr_retriever,
+                return_source_documents=True,
+                verbose=False
+            )
+            if debug_mode:
+                st.success("Použitý MMR retriever pre lepšie výsledky")
+        except Exception as retriever_error:
+            # Fallback na štandardný retriever ak MMR nefunguje
+            if debug_mode:
+                st.warning(f"MMR retriever zlyhalo: {str(retriever_error)}. Použitý štandardný retriever.")
+            qa_chain = ConversationalRetrievalChain.from_llm(
+                llm=llm,
+                retriever=vectorstore.as_retriever(search_kwargs={
+                    "k": 8,  # Zvýšený počet výsledkov
+                    "score_threshold": 0.25,  # Znížený threshold pre viac výsledkov
+                }),
+                return_source_documents=True,
+                verbose=False
+            )
         
         # Chat interface
         if prompt := st.chat_input("Napíšte vašu otázku o bezpečnosti pri práci..."):
@@ -568,16 +630,53 @@ if api_key:
                 )]
                 
                 try:
-                    # If in debug mode, first show similar document contents
+                    # If in debug mode, first show similar document contents and embedding info
                     if debug_mode:
                         with st.expander("Debug: Podobné dokumenty"):
-                            # Do a direct similarity search
-                            raw_docs = vectorstore.similarity_search(prompt, k=5)
-                            for i, doc in enumerate(raw_docs):
-                                st.markdown(f"**Dokument {i+1}:**")
-                                st.text(doc.page_content[:500] + "..." if len(doc.page_content) > 500 else doc.page_content)
-                                st.markdown(f"Zdroj: {doc.metadata.get('source', 'Neznámy')}")
-                                st.markdown("---")
+                            st.markdown("### Embedding informácie")
+                            st.info(f"Vstupný prompt na embedding: '{prompt}'")
+                            
+                            # Test embedding creation
+                            try:
+                                embeddings = OpenAIEmbeddings()
+                                # Just check that we can create embeddings
+                                test_embedding = embeddings.embed_query(prompt)
+                                st.success(f"Embedding vytvorený - dĺžka vektora: {len(test_embedding)}")
+                            except Exception as embed_error:
+                                st.error(f"Chyba pri vytváraní embeddings: {str(embed_error)}")
+                            
+                            st.markdown("### Výsledky vyhľadávania")
+                            # Try both similarity search and mmr search
+                            st.markdown("#### Similarity Search:")
+                            try:
+                                raw_docs = vectorstore.similarity_search(prompt, k=5)
+                                if not raw_docs:
+                                    st.warning("Similarity search nenašiel žiadne dokumenty")
+                                else:
+                                    st.success(f"Nájdených {len(raw_docs)} dokumentov")
+                                    for i, doc in enumerate(raw_docs):
+                                        st.markdown(f"**Dokument {i+1}:**")
+                                        st.text(doc.page_content[:500] + "..." if len(doc.page_content) > 500 else doc.page_content)
+                                        st.markdown(f"Zdroj: {doc.metadata.get('source', 'Neznámy')}")
+                                        st.markdown("---")
+                            except Exception as e:
+                                st.error(f"Chyba pri similarity search: {str(e)}")
+                                
+                            st.markdown("#### MMR Search (pre diverzitu výsledkov):")
+                            try:
+                                mmr_retriever = vectorstore.as_retriever(search_type="mmr", search_kwargs={"k": 5, "fetch_k": 15})
+                                mmr_docs = mmr_retriever.get_relevant_documents(prompt)
+                                if not mmr_docs:
+                                    st.warning("MMR search nenašiel žiadne dokumenty")
+                                else:
+                                    st.success(f"MMR nájdených {len(mmr_docs)} dokumentov")
+                                    for i, doc in enumerate(mmr_docs):
+                                        st.markdown(f"**Dokument {i+1}:**")
+                                        st.text(doc.page_content[:500] + "..." if len(doc.page_content) > 500 else doc.page_content)
+                                        st.markdown(f"Zdroj: {doc.metadata.get('source', 'Neznámy')}")
+                                        st.markdown("---")
+                            except Exception as mmr_e:
+                                st.error(f"Chyba pri MMR search: {str(mmr_e)}")
                     
                     # Process original query
                     strict_prompt = (
