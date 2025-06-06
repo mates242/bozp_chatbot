@@ -89,7 +89,7 @@ if api_key:
     if vectorstore:
         # Vytvorenie chatbota s vyššou kreativitou ale stále faktickou presnosťou
         llm = ChatOpenAI(
-            temperature=0.4,  # Vyššia kreativita pre zaujímavejšie odpovede
+            temperature=0.7,  # Vyššia kreativita pre zaujímavejšie odpovede
             model_name="gpt-4o"
         )
         
@@ -128,11 +128,16 @@ if api_key:
                         "\n\nOdpovedaj iba fakticky, stručne a v slovenčine. "
                         "Použi informácie, ktoré najviac významovo súvisia s otázkou, aj keď nie sú presne rovnaké. "
                         "Nepoužívaj žiadne príklady, analógie ani kreatívne rozšírenia. "
-                        "Ak nemáš dostatok informácií, povedz to jasne."
+                        # "Ak nemáš dostatok informácií, povedz to jasne."
                     )
                     response = qa_chain({"question": strict_prompt, "chat_history": chat_history})
                     answer = response["answer"]
-                    
+                    # Fallback if answer is empty or generic
+                    fallback_phrases = [
+                        "neviem", "nemám dostatok informácií", "neviem odpovedať", "nemám informácie", "I don't know", "No relevant information found"
+                    ]
+                    if (not answer.strip() or any(phrase in answer.lower() for phrase in fallback_phrases)) and not response["source_documents"]:
+                        answer = "Nenašiel som konkrétne informácie. Skúste sa opýtať na konkrétny zákon alebo tému."
                     # Pridanie informácií o zdrojoch (unikátne)
                     if response["source_documents"]:
                         sources = set()
