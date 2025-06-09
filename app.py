@@ -30,6 +30,9 @@ except:
     except:
         pass  # Continue even if locale setting fails
 
+# Set debug_mode to False by default
+debug_mode = False
+
 # Nastavenie slovenského jazyka a dark mode
 st.set_page_config(
     page_title="Chatbot o bezpečnosti pri práci",
