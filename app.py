@@ -72,7 +72,7 @@ with st.sidebar:
     # Clear chat button
     if st.button("Vyčistiť chat", help="Vyčistiť históriu chatu a kontext konverzácie"):
         st.session_state.messages = []
-        st.experimental_rerun()
+        st.rerun()
     
     st.markdown("---")
     st.markdown("## O aplikácii")
