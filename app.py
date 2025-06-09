@@ -66,8 +66,8 @@ with st.sidebar:
     else:
         st.warning("Prosím, zadajte váš OpenAI API kľúč pre používanie chatbota.")
     
-    # Debug mode
-    debug_mode = st.checkbox("Debug režim", help="Zobraziť dodatočné informácie o vyhľadávaní")
+    # # Debug mode
+    # debug_mode = st.checkbox("Debug režim", help="Zobraziť dodatočné informácie o vyhľadávaní")
     
     # Clear chat button
     if st.button("Vyčistiť chat", help="Vyčistiť históriu chatu a kontext konverzácie"):
