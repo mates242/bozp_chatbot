@@ -119,8 +119,8 @@ def direct_law_search(law_number, year, vectorstore, debug_mode=False):
         if debug_mode:
             st.write(f"Skúšam MMR retrieval s kombinovaným dotazom: {combined_query}")
         
-        # MMR retrieval to get more diverse matches
-        mmr_retriever = vectorstore.as_retriever(search_type="mmr", search_kwargs={"k": 8, "fetch_k": 15})
+        # MMR retrieval to get more diverse matches - optimalizované pre efektivitu
+        mmr_retriever = vectorstore.as_retriever(search_type="mmr", search_kwargs={"k": 5, "fetch_k": 10})
         mmr_docs = mmr_retriever.get_relevant_documents(combined_query)
         
         if mmr_docs:
@@ -145,8 +145,8 @@ def direct_law_search(law_number, year, vectorstore, debug_mode=False):
             st.write(f"Skúšam explicitný formát: {format_str}")
         
         try:
-            # Slightly increase k for better coverage
-            docs = vectorstore.similarity_search(format_str, k=7)
+            # Optimalizované pre vyváženie pokrytia a efektivity
+            docs = vectorstore.similarity_search(format_str, k=5)
             
             if docs:
                 # Validate results - check if documents actually contain the law reference
@@ -197,8 +197,8 @@ def direct_law_search(law_number, year, vectorstore, debug_mode=False):
         if debug_mode:
             st.write(f"Posledný pokus - široké vyhľadávanie: {broad_query}")
         
-        # Increase k significantly for this final attempt
-        raw_docs = vectorstore.similarity_search(broad_query, k=20)
+        # Optimalizované pre efektivitu a zachovanie kvality
+        raw_docs = vectorstore.similarity_search(broad_query, k=12)  # Znížené z 20
         
         # Filter by exact reference match
         for doc in raw_docs:
@@ -267,7 +267,7 @@ def get_law_content(law_number, year, vectorstore, chat_history=None, debug_mode
     llm = ChatOpenAI(temperature=0.2, model_name="gpt-4o")
     law_chain = ConversationalRetrievalChain.from_llm(
         llm=llm,
-        retriever=vectorstore.as_retriever(search_kwargs={"k": 8}),
+        retriever=vectorstore.as_retriever(search_kwargs={"k": 5}),  # Znížené z 8 pre lepšiu efektivitu
         return_source_documents=True
     )
     

@@ -323,8 +323,8 @@ def handle_law_number_query(prompt, vectorstore, chat_history, debug_mode=False)
                 better_response = qa_chain({"question": better_prompt, "chat_history": []})
                 return better_response
 
-        # Potom skúsime priame vyhľadávanie v dokumentoch
-        direct_docs = vectorstore.similarity_search(f"{law_number}_{year}", k=8)
+        # Potom skúsime priame vyhľadávanie v dokumentoch - optimalizované
+        direct_docs = vectorstore.similarity_search(f"{law_number}_{year}", k=5)  # Znížené z 8
         for doc in direct_docs:
             content = doc.page_content.lower() if hasattr(doc, 'page_content') else ''
             source = doc.metadata.get('source', '').lower() if hasattr(doc, 'metadata') and doc.metadata else ''
@@ -353,7 +353,7 @@ def handle_law_number_query(prompt, vectorstore, chat_history, debug_mode=False)
         if debug_mode:
             st.write(f"Posledný pokus - obsahové vyhľadávanie: {content_search_query}")
         
-        raw_docs = vectorstore.similarity_search(content_search_query, k=10)
+        raw_docs = vectorstore.similarity_search(content_search_query, k=8)  # Znížené z 10
         
         # Manuálne filtrujeme nájdené dokumenty
         matching_docs = []
@@ -505,9 +505,9 @@ def direct_law_search(law_number, year, vectorstore, debug_mode=False):
         if debug_mode:
             st.info(f"Skúšam kombinované vyhľadávanie: {combined_query}")
         
-        # Použijeme MMR vyhľadávanie pre lepšiu rozmanitosť výsledkov
+        # Použijeme MMR vyhľadávanie pre lepšiu rozmanitosť výsledkov - optimalizované
         try:
-            mmr_retriever = vectorstore.as_retriever(search_type="mmr", search_kwargs={"k": 15, "fetch_k": 20, "lambda_mult": 0.7})
+            mmr_retriever = vectorstore.as_retriever(search_type="mmr", search_kwargs={"k": 10, "fetch_k": 15, "lambda_mult": 0.7})
             raw_docs = mmr_retriever.get_relevant_documents(combined_query)
             if debug_mode and raw_docs:
                 st.success(f"Našiel som {len(raw_docs)} dokumentov pomocou MMR vyhľadávania")
@@ -515,7 +515,7 @@ def direct_law_search(law_number, year, vectorstore, debug_mode=False):
             if debug_mode:
                 st.error(f"MMR vyhľadávanie zlyhalo: {str(mmr_err)}, skúšam štandardné vyhľadávanie")
             # Fallback na štandardné vyhľadávanie
-            raw_docs = vectorstore.similarity_search(combined_query, k=15, score_threshold=0.25)  # Lower threshold for more results
+            raw_docs = vectorstore.similarity_search(combined_query, k=10, score_threshold=0.28)  # Optimalizované hodnoty
         
         for doc in raw_docs:
             content = doc.page_content.lower() if hasattr(doc, 'page_content') else ""
@@ -590,10 +590,10 @@ if api_key:
             mmr_retriever = vectorstore.as_retriever(
                 search_type="mmr",
                 search_kwargs={
-                    "k": 8,  # Počet dokumentov na vrátenie
-                    "fetch_k": 15,  # Počet dokumentov na fetch pred skoringom
+                    "k": 6,  # Počet dokumentov na vrátenie - znížené z 8 pre lepšiu efektivitu
+                    "fetch_k": 12,  # Počet dokumentov na fetch pred skoringom - znížené z 15
                     "lambda_mult": 0.7,  # Vyváženie medzi relevantnosťou a diverzitou (0.0-1.0)
-                    "score_threshold": 0.25,  # Znížený threshold pre lepšie výsledky
+                    "score_threshold": 0.28,  # Zvýšený threshold pre lepšiu relevantnosť
                 }
             )
             qa_chain = ConversationalRetrievalChain.from_llm(
@@ -611,8 +611,8 @@ if api_key:
             qa_chain = ConversationalRetrievalChain.from_llm(
                 llm=llm,
                 retriever=vectorstore.as_retriever(search_kwargs={
-                    "k": 8,  # Zvýšený počet výsledkov
-                    "score_threshold": 0.25,  # Znížený threshold pre viac výsledkov
+                    "k": 6,  # Znížené z 8 pre lepšiu efektivitu
+                    "score_threshold": 0.28,  # Zvýšený threshold pre relevantnejšie výsledky
                 }),
                 return_source_documents=True,
                 verbose=False
@@ -658,7 +658,7 @@ if api_key:
                             # Try both similarity search and mmr search
                             st.markdown("#### Similarity Search:")
                             try:
-                                raw_docs = vectorstore.similarity_search(prompt, k=5)
+                                raw_docs = vectorstore.similarity_search(prompt, k=4)  # Znížené pre lepšiu efektivitu
                                 if not raw_docs:
                                     st.warning("Similarity search nenašiel žiadne dokumenty")
                                 else:
@@ -673,7 +673,7 @@ if api_key:
                                 
                             st.markdown("#### MMR Search (pre diverzitu výsledkov):")
                             try:
-                                mmr_retriever = vectorstore.as_retriever(search_type="mmr", search_kwargs={"k": 5, "fetch_k": 15})
+                                mmr_retriever = vectorstore.as_retriever(search_type="mmr", search_kwargs={"k": 4, "fetch_k": 10})
                                 mmr_docs = mmr_retriever.get_relevant_documents(prompt)
                                 if not mmr_docs:
                                     st.warning("MMR search nenašiel žiadne dokumenty")
@@ -710,7 +710,7 @@ if api_key:
                             st.markdown("**Debug: Skúšam MMR retrieval**")
                         
                         try:
-                            mmr_retriever = vectorstore.as_retriever(search_type="mmr", search_kwargs={"k": 6, "fetch_k": 15})
+                            mmr_retriever = vectorstore.as_retriever(search_type="mmr", search_kwargs={"k": 5, "fetch_k": 10})
                             mmr_docs = mmr_retriever.get_relevant_documents(strict_prompt)
                             
                             if mmr_docs:
@@ -888,7 +888,7 @@ if api_key:
                                 
                                 # Skúsime použiť vylepšenú funkciu na priame vyhľadávanie v vektorovom úložisku
                                 try:
-                                    # Použijeme novú funkciu ak je dostupná
+                                    # Použijeme novú funkciu ak je dostupná - je efektívnejšia
                                     if 'get_law_content' in locals() or 'get_law_content' in globals():
                                         # Použijeme kompletné vyhľadávanie s vylepšeným modulom
                                         law_response = get_law_content(num, year, vectorstore, chat_history, debug_mode)
@@ -912,7 +912,7 @@ if api_key:
                                         # Vytvoríme nový chain s parametrami na presné vyhľadávanie
                                         focused_chain = ConversationalRetrievalChain.from_llm(
                                             llm=ChatOpenAI(temperature=0.2, model_name="gpt-4o"),
-                                            retriever=vectorstore.as_retriever(search_kwargs={"k": 8}),
+                                            retriever=vectorstore.as_retriever(search_kwargs={"k": 5}),  # Znížené z 8
                                             return_source_documents=True
                                         )
                                 except Exception as search_error:
@@ -921,7 +921,7 @@ if api_key:
                                     # Continue with standard search if enhanced search fails
                                     direct_docs = vectorstore.similarity_search(f"{num}_{year} OR {num}/{year}", k=8)
                                     
-                                    # Pokúsime sa získať presnú odpoveď
+                                    # Pokúsime sa získať presnú odpoveď a ukončiť hľadanie
                                     direct_response = focused_chain({"question": direct_prompt, "chat_history": []})
                                     
                                     if direct_response["source_documents"] and not any(phrase in direct_response["answer"].lower() for phrase in 
@@ -964,7 +964,7 @@ if api_key:
                                     # Použijeme ConversationalRetrievalChain pre lepšie výsledky vyhľadávania
                                     focused_chain = ConversationalRetrievalChain.from_llm(
                                         llm=ChatOpenAI(temperature=0.2, model_name="gpt-4o"),
-                                        retriever=vectorstore.as_retriever(search_kwargs={"k": 8}),
+                                        retriever=vectorstore.as_retriever(search_kwargs={"k": 5}),  # Znížené z 8
                                         return_source_documents=True
                                     )
                                     
@@ -991,8 +991,8 @@ if api_key:
                                             st.write(f"Skúšam priamo hľadať: {law_id}")
                                         
                                         try:
-                                            # Hľadáme dokumenty obsahujúce presný formát
-                                            direct_docs = vectorstore.similarity_search(law_id, k=5)
+                                            # Hľadáme dokumenty obsahujúce presný formát - znížený počet pre efektivitu
+                                            direct_docs = vectorstore.similarity_search(law_id, k=4)
                                             
                                             # Ak sme niečo našli, spracujeme to
                                             if direct_docs:
@@ -1000,7 +1000,7 @@ if api_key:
                                                 direct_prompt = f"Na základe týchto dokumentov, čo upravuje zákon {num}/{year} alebo {num}_{year}?"
                                                 direct_response = qa_chain({"question": direct_prompt, "chat_history": []})
                                                 
-                                                # Validujeme odpoveď
+                                                # Validujeme odpoveď - len ak je relevantná
                                                 if direct_response["source_documents"] and not any(phrase in direct_response["answer"].lower() for phrase in 
                                                     ["neviem", "nemám informácie", "nenašiel som", "nemám dostatok"]):
                                                     
@@ -1008,7 +1008,7 @@ if api_key:
                                                     answer = direct_response["answer"]
                                                     if debug_mode:
                                                         st.success(f"Našiel som zákon pomocou priameho vyhľadávania: {law_id}")
-                                                    break
+                                                    break  # Prerušíme vyhľadávanie keď nájdeme dobrú odpoveď
                                         except Exception as e:
                                             if debug_mode:
                                                 st.error(f"Chyba pri priamom vyhľadávaní: {str(e)}")
@@ -1053,8 +1053,8 @@ if api_key:
                             if "zákon" in prompt.lower():
                                 # Pokus o priame vyhľadávanie v metadátach dokumentov
                                 try:
-                                    # Vyhľadáme súbory, ktoré by mohli obsahovať tento zákon
-                                    direct_docs = vectorstore.similarity_search(f"{law_number}_{year} OR {law_number}/{year}", k=5)
+                                    # Vyhľadáme súbory, ktoré by mohli obsahovať tento zákon - optimalizované
+                                    direct_docs = vectorstore.similarity_search(f"{law_number}_{year} OR {law_number}/{year}", k=3)
                                     sources_found = []
                                     
                                     for doc in direct_docs:
