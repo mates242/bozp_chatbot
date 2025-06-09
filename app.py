@@ -53,6 +53,7 @@ st.markdown("""
 # Nadpis aplikácie
 st.title("Chatbot o bezpečnosti pri práci")
 st.write("Tento chatbot poskytuje informácie o slovenských zákonoch týkajúcich sa bezpečnosti pri práci.")
+st.write("Upozornenie: Informácie poskytnuté týmto chatbotom nemusia byť vždy presné alebo aktuálne. Odporúčame ich overiť z dôveryhodných zdrojov.")
 
 # Vytvorenie sidebar pre API kľúč
 with st.sidebar:
@@ -834,17 +835,17 @@ if api_key:
                             except:
                                 pass
                     
-                    # Pridanie informácií o zdrojoch (unikátne)
-                    if response["source_documents"]:
-                        sources = set()
-                        for doc in response["source_documents"]:
-                            if hasattr(doc, 'metadata') and doc.metadata:
-                                source_info = doc.metadata.get('source', 'Neznámy zdroj')
-                                sources.add(source_info)
-                        if sources:
-                            answer += "\n\n**Zdroje:**"
-                            for source in sources:
-                                answer += f"\n- {source}"
+                    # # Pridanie informácií o zdrojoch (unikátne)
+                    # if response["source_documents"]:
+                    #     sources = set()
+                    #     for doc in response["source_documents"]:
+                    #         if hasattr(doc, 'metadata') and doc.metadata:
+                    #             source_info = doc.metadata.get('source', 'Neznámy zdroj')
+                    #             sources.add(source_info)
+                    #     if sources:
+                    #         answer += "\n\n**Zdroje:**"
+                    #         for source in sources:
+                    #             answer += f"\n- {source}"
                     
                     # Špeciálne spracovanie otázok o zákonoch podľa čísla
                     law_response = handle_law_number_query(prompt, vectorstore, chat_history, debug_mode)
@@ -1019,17 +1020,17 @@ if api_key:
                         response = law_response
                         answer = law_response["answer"]
                         
-                        # Pridanie informácií o zdrojoch (unikátne)
-                        if law_response["source_documents"]:
-                            sources = set()
-                            for doc in law_response["source_documents"]:
-                                if hasattr(doc, 'metadata') and doc.metadata:
-                                    source_info = doc.metadata.get('source', 'Neznámy zdroj')
-                                    sources.add(source_info)
-                            if sources:
-                                answer += "\n\n**Zdroje:**"
-                                for source in sources:
-                                    answer += f"\n- {source}"
+                        # # Pridanie informácií o zdrojoch (unikátne)
+                        # if law_response["source_documents"]:
+                        #     sources = set()
+                        #     for doc in law_response["source_documents"]:
+                        #         if hasattr(doc, 'metadata') and doc.metadata:
+                        #             source_info = doc.metadata.get('source', 'Neznámy zdroj')
+                        #             sources.add(source_info)
+                        #     if sources:
+                        #         answer += "\n\n**Zdroje:**"
+                        #         for source in sources:
+                        #             answer += f"\n- {source}"
                         
                         if debug_mode:
                             st.success("Úspešne sa našiel a spracoval zákon")
