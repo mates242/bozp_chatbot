@@ -61,10 +61,11 @@ st.write("Upozornenie: Informácie poskytnuté týmto chatbotom nemusia byť vž
 # Vytvorenie sidebar pre API kľúč
 with st.sidebar:
     st.header("Nastavenia")
-    api_key = st.text_input("OpenAI API kľúč", type="password")
-    
+    # Store API key in session_state for persistence across reruns
+    api_key = st.text_input("OpenAI API kľúč", type="password", value=st.session_state.get("api_key", ""))
     if api_key:
-        os.environ["OPENAI_API_KEY"] = api_key
+        st.session_state["api_key"] = api_key
+        os.environ["OPENAI_API_KEY"] = api_key  # Set env variable for OpenAI libraries
         st.success("API kľúč bol nastavený!")
     else:
         st.warning("Prosím, zadajte váš OpenAI API kľúč pre používanie chatbota.")
@@ -80,6 +81,10 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("## O aplikácii")
     st.markdown("Táto aplikácia využíva vektorovú databázu pre poskytovanie informácií o slovenských zákonoch o bezpečnosti pri práci.")
+
+# Set OpenAI API key from session_state before any OpenAI/LLM/embedding code runs
+if "api_key" in st.session_state and st.session_state["api_key"]:
+    os.environ["OPENAI_API_KEY"] = st.session_state["api_key"]
 
 # Funkcia pre načítanie FAISS vektorového úložiska
 @st.cache_resource
@@ -573,7 +578,8 @@ for message in st.session_state.messages:
         st.markdown(message["content"])
 
 # Spracovanie nových správ
-if api_key:
+if "api_key" in st.session_state and st.session_state["api_key"]:
+    api_key = st.session_state["api_key"]
     # Načítanie vektorového úložiska
     vectorstore = load_vectorstore()
     

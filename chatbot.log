@@ -186,3 +186,7 @@
 2025-06-09 13:58:36,011 - INFO - Successfully loaded faiss.
 2025-06-09 13:58:39,534 - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
 2025-06-09 13:58:40,802 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-06-10 08:50:53,336 - INFO - Loading faiss.
+2025-06-10 08:50:53,513 - INFO - Successfully loaded faiss.
+2025-06-10 08:50:57,810 - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-06-10 08:50:59,263 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
