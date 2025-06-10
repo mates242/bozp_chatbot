@@ -12,84 +12,25 @@ from langchain_community.vectorstores import FAISS
 from langchain.chains import ConversationalRetrievalChain
 from langchain_openai import ChatOpenAI
 
-# Define the path to the stiahnute_zakony directory - adjust this path as needed
-LAWS_DIRECTORY = '/Users/A200249303/Documents/Zakony/stiahnute_zakony'
+# Log information about vectorstore usage
+logging.info("Using processed_data vectorstore for searches. Original stiahnute_zakony directory is not available.")
 
 def direct_file_search(law_number, year, debug_mode=False):
     """
-    Search directly for a law file in the stiahnute_zakony directory.
-    This is a fallback mechanism when vectorstore search fails.
+    Legacy function maintained for compatibility.
+    Since stiahnute_zakony directory no longer exists, this will always return None.
+    All searches should use the vectorstore in processed_data instead.
     """
     if debug_mode:
-        st.write(f"Vykonávam priame vyhľadávanie súboru pre zákon {law_number}/{year} v adresári stiahnute_zakony")
+        st.info(f"Priame vyhľadávanie súboru pre zákon {law_number}/{year} nie je k dispozícii - používam len vektorové úložisko.")
     
-    # Create file name patterns to check
-    file_patterns = [
-        f"{law_number}_{year}.txt", 
-        f"{law_number}-{year}.txt",
-        f"{law_number}_{year[2:]}.txt",  # Handle two-digit year format
-        f"{law_number}-{year[2:]}.txt"   # Handle two-digit year format with dash
-    ]
-    
-    # Check if directory exists
-    if not os.path.exists(LAWS_DIRECTORY):
-        if debug_mode:
-            st.error(f"Adresár {LAWS_DIRECTORY} nebol nájdený!")
-        return None
-    
-    # List all files in the directory
-    try:
-        all_files = os.listdir(LAWS_DIRECTORY)
-        
-        # First check for exact file name matches
-        for pattern in file_patterns:
-            if pattern in all_files:
-                file_path = os.path.join(LAWS_DIRECTORY, pattern)
-                if debug_mode:
-                    st.success(f"Našiel som súbor zákona: {pattern}")
-                
-                # Read the file content
-                try:
-                    with open(file_path, 'r', encoding='utf-8') as file:
-                        content = file.read()
-                    return {"file_path": file_path, "content": content}
-                except Exception as e:
-                    if debug_mode:
-                        st.error(f"Chyba pri čítaní súboru {pattern}: {str(e)}")
-        
-        # If exact match not found, try partial match
-        for file in all_files:
-            # Look for patterns like "75_2023" or variations in filenames
-            if (f"{law_number}_{year}" in file or 
-                f"{law_number}-{year}" in file or 
-                f"{law_number}/{year}" in file):
-                
-                file_path = os.path.join(LAWS_DIRECTORY, file)
-                if debug_mode:
-                    st.success(f"Našiel som súbor zákona s čiastočnou zhodou: {file}")
-                
-                # Read the file content
-                try:
-                    with open(file_path, 'r', encoding='utf-8') as f:
-                        content = f.read()
-                    return {"file_path": file_path, "content": content}
-                except Exception as e:
-                    if debug_mode:
-                        st.error(f"Chyba pri čítaní súboru {file}: {str(e)}")
-        
-        if debug_mode:
-            st.warning(f"Nenašiel som súbor pre zákon {law_number}/{year} v adresári {LAWS_DIRECTORY}")
-        return None
-        
-    except Exception as e:
-        if debug_mode:
-            st.error(f"Chyba pri prehľadávaní adresára {LAWS_DIRECTORY}: {str(e)}")
-        return None
+    # The stiahnute_zakony directory doesn't exist anymore
+    return None
 
 def direct_law_search(law_number, year, vectorstore, debug_mode=False):
     """
     Enhanced function for direct law searching in the vectorstore
-    Focuses on using the vectorstore in processed_data for all searches
+    Focuses exclusively on using the vectorstore in processed_data for all searches
     """
     # Expanded formats to try, with more variations to increase match chance
     formats = [
@@ -215,22 +156,6 @@ def direct_law_search(law_number, year, vectorstore, debug_mode=False):
     except Exception as e:
         if debug_mode:
             st.error(f"Chyba pri finálnom vyhľadávaní: {str(e)}")
-    
-    # No documents found in vectorstore, try direct file search as fallback
-    if debug_mode:
-        st.warning(f"Nenašiel som žiadne dokumenty vo vektorovom úložisku, skúšam priame vyhľadávanie súborov")
-    
-    # Try direct file search as fallback
-    direct_result = direct_file_search(law_number, year, debug_mode)
-    if direct_result:
-        # Create a document object similar to what would be returned from vectorstore
-        from langchain.schema import Document
-        
-        doc = Document(
-            page_content=direct_result["content"],
-            metadata={"source": f"stiahnute_zakony/{os.path.basename(direct_result['file_path'])}"}
-        )
-        return [doc]
     
     # No documents found anywhere
     if debug_mode:

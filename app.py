@@ -541,10 +541,13 @@ def direct_law_search(law_number, year, vectorstore, debug_mode=False):
         from enhanced_law_search import direct_file_search
         
         if debug_mode:
-            st.write(f"Skúšam priame vyhľadávanie súborov pre zákon {law_number}/{year}")
+            st.write(f"Skúšam nájsť informácie o zákone {law_number}/{year} vo vektorovom úložisku")
             
-        # Priame vyhľadávanie súborov
+        # Priame vyhľadávanie bude pracovať iba s vektorovým úložiskom, pretože pôvodný adresár neexistuje
         direct_result = direct_file_search(law_number, year, debug_mode)
+        
+        # Táto podmienka už nikdy nebude splnená, pretože direct_file_search vždy vráti None,
+        # ale ponechávame ju pre zachovanie štruktúry kódu
         if direct_result:
             # Vytvorenie Document objektu
             try:
@@ -554,14 +557,14 @@ def direct_law_search(law_number, year, vectorstore, debug_mode=False):
             
             doc = Document(
                 page_content=direct_result["content"],
-                metadata={"source": f"stiahnute_zakony/{os.path.basename(direct_result['file_path'])}"}
+                metadata={"source": f"vectorstore/{os.path.basename(direct_result['file_path'])}"}
             )
             if debug_mode:
-                st.success(f"Našiel som zákon {law_number}/{year} priamo v súbore {os.path.basename(direct_result['file_path'])}")
+                st.success(f"Našiel som zákon {law_number}/{year}")
             return [doc]
     except Exception as e:
         if debug_mode:
-            st.error(f"Chyba pri priamom vyhľadávaní súborov: {str(e)}")
+            st.error(f"Chyba pri vyhľadávaní: {str(e)}")
     
     # Ak sa dostaneme sem, nenašli sme žiadne dokumenty
     if debug_mode:
