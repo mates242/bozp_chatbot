@@ -699,10 +699,11 @@ if "api_key" in st.session_state and st.session_state["api_key"]:
                     # Process original query
                     strict_prompt = (
                         prompt +
-                        "\n\nOdpovedaj stručne a v slovenčine. " 
-                        "Použi informácie, ktoré najviac významovo súvisia s otázkou, aj keď nie sú presne rovnaké. "
-                        "Hľadaj informácie vo všetkých dostupných zdrojoch o zákonoch a bezpečnosti práce. "
-                        "Ak nemáš dostatok informácií, povedz to jasne."
+                        "Answer concisely and in Slovak.. " 
+                        "Use the information that is most semantically related to the question, even if it is not exactly the same.. "
+                        "Search for information in all available sources about laws and work safety. "
+                        "If you don't have enough information, state it clearly."
+                        "Always mention which law or document you are referring to, if applicable."
                     )
                     response = qa_chain({"question": strict_prompt, "chat_history": chat_history})
                     answer = response["answer"]
